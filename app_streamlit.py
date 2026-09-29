@@ -8,7 +8,9 @@ st.set_page_config(
     layout="wide"
 )
 
-API_URL = "http://127.0.0.1:8000/api/consultar"
+API_URL = "http://backend:8000/api/consultar"
+COLECCIONES_URL = "http://backend:8000/api/colecciones"
+COLECCION_POR_DEFECTO = "asfi_bancaria_2026"
 
 # Barra lateral con controles
 with st.sidebar:
@@ -16,7 +18,19 @@ with st.sidebar:
     st.title("⚖️ Control Normativo")
     st.markdown("Sistema RAG para resoluciones **ASFI** y normativa de **Banco Unión**.")
     st.divider()
-    
+
+    st.subheader("Colección Temática (aislamiento)")
+    try:
+        r = requests.get(COLECCIONES_URL, timeout=10)
+        opciones = [c["coleccion_id"] for c in r.json().get("colecciones", [])] if r.ok else []
+    except Exception:
+        opciones = []
+    if not opciones:
+        opciones = [COLECCION_POR_DEFECTO]
+    if COLECCION_POR_DEFECTO not in opciones:
+        opciones.insert(0, COLECCION_POR_DEFECTO)
+    coleccion_id = st.selectbox("Dominio consultado (coleccion_id):", opciones)
+
     st.subheader("Configuración de Recuperación")
     top_k = st.slider("Documentos a recuperar (top_k):", min_value=1, max_value=8, value=4)
     threshold = st.slider("Umbral mínimo de similitud:", min_value=0.20, max_value=0.80, value=0.35, step=0.05)
@@ -57,6 +71,7 @@ if prompt := st.chat_input("Escribe tu consulta legal o normativa (ej. facultade
         with st.spinner("Consultando base vectorial y generando fundamentación jurídica..."):
             payload = {
                 "pregunta": prompt,
+                "coleccion_id": coleccion_id,
                 "top_k": top_k,
                 "match_threshold": threshold
             }
@@ -84,6 +99,6 @@ if prompt := st.chat_input("Escribe tu consulta legal o normativa (ej. facultade
                     err_msg = f"Error en el servidor API (Código {response.status_code}): {response.text}"
                     st.error(err_msg)
             except requests.exceptions.ConnectionError:
-                st.error("No se pudo conectar con el servidor FastAPI en http://127.0.0.1:8000. Asegúrate de que `uvicorn main:app` esté corriendo.")
+                st.error("No se pudo conectar con el servidor FastAPI (backend) en la red interna. Asegúrate de que el contenedor `lexbancario_backend` esté corriendo.")
             except Exception as e:
                 st.error(f"Error inesperado: {e}")

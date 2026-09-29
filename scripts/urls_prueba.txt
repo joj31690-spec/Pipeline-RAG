@@ -1,0 +1,12 @@
+# Conjunto de prueba mínimo: 10 URLs de tamaño similar (dominio financiero/regulatorio)
+# Uso: python scripts/ingestar_web.py benchmark --urls scripts/urls_prueba.txt --workers 1 2 4 8
+https://es.wikipedia.org/wiki/Banco
+https://es.wikipedia.org/wiki/Sistema_financiero
+https://es.wikipedia.org/wiki/Capital_social
+https://es.wikipedia.org/wiki/Sistema_bancario
+https://es.wikipedia.org/wiki/Cr%C3%A9dito
+https://es.wikipedia.org/wiki/Intermediario_financiero
+https://es.wikipedia.org/wiki/Ahorro
+https://es.wikipedia.org/wiki/Dep%C3%B3sito_bancario
+https://es.wikipedia.org/wiki/Mercado_de_capitales
+https://es.wikipedia.org/wiki/Regulaci%C3%B3n_financiera
