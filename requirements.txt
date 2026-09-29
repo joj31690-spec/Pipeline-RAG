@@ -2,6 +2,7 @@ fastapi
 google-genai
 httpx
 lxml
+matplotlib
 pdf2image
 beautifulsoup4
 pydantic

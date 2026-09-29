@@ -1,0 +1,20 @@
+{
+  "modo": "pipeline_completo_con_bd",
+  "nota": "Medicion real con Supabase + Gemini. p>=2 esta contaminado por 429 RESOURCE_EXHAUSTED (cuota diaria de Gemini agotada): los reintentos con backoff inflan el tiempo. p=1 es valido porque corrio antes de agotarse.",
+  "urls": 10,
+  "t1": 81.65,
+  "filas": [
+    {"workers": 1, "T_s": 81.65, "speedup": 1.0, "eficiencia": 1.0,
+     "desglose_pct": {"scraping": 9.37, "chunking": 0.79, "embeddings": 75.2, "insercion": 14.64},
+     "valido": true},
+    {"workers": 2, "T_s": 157.74, "speedup": 0.518, "eficiencia": 0.259,
+     "desglose_pct": {"scraping": 2.17, "chunking": 0.42, "embeddings": 91.86, "insercion": 5.55},
+     "valido": false},
+    {"workers": 4, "T_s": 551.86, "speedup": 0.148, "eficiencia": 0.037,
+     "desglose_pct": {"scraping": 0.44, "chunking": 0.11, "embeddings": 99.46, "insercion": 0.0},
+     "valido": false},
+    {"workers": 8, "T_s": 554.07, "speedup": 0.147, "eficiencia": 0.018,
+     "desglose_pct": {"scraping": 0.27, "chunking": 0.12, "embeddings": 99.6, "insercion": 0.0},
+     "valido": false}
+  ]
+}
