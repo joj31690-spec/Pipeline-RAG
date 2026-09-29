@@ -1,0 +1,5 @@
+# Coleccion DOMINIO TRIBUTARIO (para probar aislamiento vs. dominio bancario)
+https://es.wikipedia.org/wiki/Tributo
+https://es.wikipedia.org/wiki/Sistema_tributario
+https://es.wikipedia.org/wiki/Impuesto_sobre_la_renta
+https://es.wikipedia.org/wiki/Hacienda_p%C3%BAblica
