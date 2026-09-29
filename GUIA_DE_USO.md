@@ -268,10 +268,70 @@ URLs ──ThreadPoolExecutor──▶ HTML crudo
   principal, la fase `chunking` mediría trabajo secuencial y falsearía el speedup.
 - Embeddings **secuenciales** en lotes de 10, con reintentos exponenciales
   (2 s → 60 s) ante `429 RESOURCE_EXHAUSTED`, `503` y `UNAVAILABLE`.
+- Inserción masiva por lotes, con reintentos propios. Un lote fallido no aborta
+  los siguientes.
 
-### 5.4 Aislamiento verificado (cero contaminación cruzada)
+### 5.4 Manejo de errores y sincronización
 
-Con las colecciones `regulatorio_bancario_2026` y `tributaria_bolivia_2026` pobladas:
+Ninguna excepción se traga: cada fase acumula sus fallos en `errores`, que la
+respuesta devuelve al cliente.
+
+| Situación | Comportamiento |
+|---|---|
+| URL caída, lenta o con error HTTP | Se reintenta con backoff; se registra y el resto de las URLs continúa |
+| HTML malformado | Se registra; ese documento no aborta la ingesta |
+| Lote de embeddings agota los reintentos | El lote queda sin vector, se cuenta en `fragmentos_sin_embedding` y se reporta con su causa |
+| Lote de inserción falla | Se reintenta; si persiste, se reporta y los lotes siguientes continúan |
+| `concurrency_workers` fuera de 1–16 | `422` de validación de la API; error explícito en la CLI |
+
+Sincronización: `metricas` y `errores` los muta **únicamente** el hilo principal
+que drena `as_completed()`. Los workers no los tocan, así que no hace falta
+`Lock`; un candado alrededor de esas escrituras sería redundante. Cada worker de
+descarga abre su propio `httpx.Client`, de modo que no hay cliente HTTP
+compartido entre hilos.
+
+El ensamblado de fragmentos se hace **en el orden original de las URLs**, no en el
+orden de finalización de `as_completed()` (que depende de qué hilo termina
+primero). Sin eso, `articulo_ref` se renumeraba en cada corrida del mismo
+documento, con lo que las citas no eran estables. Verificado: el hash de la
+secuencia de fragmentos es idéntico con 1, 2, 4 y 8 workers.
+
+### 5.5 Aislamiento verificado (cero contaminación cruzada)
+
+El aislamiento se verifica de dos formas complementarias.
+
+**Verificación exhaustiva, sin depender de la API** (`scripts/verificar_aislamiento.py`):
+
+El aislamiento es una propiedad del DDL y de la RPC, no del modelo de embeddings,
+as que puede comprobarse exhaustivamente en vez de con dos o tres preguntas:
+
+```bash
+docker compose exec -T backend python scripts/verificar_aislamiento.py
+```
+
+```
+Colecciones detectadas: 3
+  asfi_bancaria_2026            22 fragmentos
+  regulatorio_bancario_2026     51 fragmentos
+  tributaria_bolivia_2026       80 fragmentos
+
+Consultas aleatorias por coleccion: 40   Semilla fija: 20260929
+  asfi_bancaria_2026            OK
+  regulatorio_bancario_2026     OK
+  tributaria_bolivia_2026       OK
+  Coleccion inexistente: 0 resultados (esperado 0)
+
+Filas recuperadas en total : 2400
+Filas de otra coleccion   : 0
+[OK] CERO CONTAMINACION CRUZADA CONFIRMADA
+```
+
+Son 120 consultas de 768 dimensiones con umbral `match_threshold = -1.0` (que
+acepta cualquier similitud, para maximizar las posibilidades de fuga). Ninguna
+devolvió una fila de otra colección, y una colección inexistente devuelve vacío
+en lugar de degradar a una búsqueda global.
+
+**Verificación semántica, con el LLM** (preguntas cruzadas sobre `/api/consultar`):
 
 | Prueba | Colección consultada | Fuentes recuperadas | Resultado |
 |---|---|---|---|
@@ -280,8 +340,13 @@ Con las colecciones `regulatorio_bancario_2026` y `tributaria_bolivia_2026` pobl
 | Pregunta **tributaria** correcta | tributaria | `Tributo`, `Sistema_tributario` (sim. 73 %) | Responde con la definición de tributo |
 | Pregunta **bancaria** correcta | bancaria | `Intermediario_financiero` (sim. 85 %) | Responde la definición |
 
-En ninguna de las dos pruebas cruzadas aparece un solo fragmento del otro dominio:
-el aislamiento se sostiene a nivel de Recuperación, no solo de generación.
+En ninguno de los dos casos cruzados aparece un fragmento del otro dominio: el
+aislamiento se sostiene a nivel de recuperación, no solo de generación.
+
+> Ambas verificaciones requieren cuota de la API solo la segunda. Si la cuota
+> diaria está agotada, `/api/consultar` responde
+> `Error en búsqueda vectorial: 429 RESOURCE_EXHAUSTED`, mientras que
+> `verificar_aislamiento.py` sigue funcionando.
 
 ---
 

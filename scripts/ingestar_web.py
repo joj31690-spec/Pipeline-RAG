@@ -299,11 +299,14 @@ def ingesta_por_coleccion(
             "coleccion_id": coleccion_id,
             "wallclock_s": round(time.perf_counter() - t_inicio, 2),
             "desglose_pct": metricas.desglose_pct(),
-            "metricas": metricas.__dict__,
+            "fragmentos": 0,
+            "fragmentos_sin_embedding": 0,
             "insertados": 0,
             "url_ok": metricas.url_completadas,
             "url_fallidas": metricas.url_fallidas,
+            "urls_duplicadas": metricas.urls_duplicadas,
             "errores": errores,
+            "metricas": dict(metricas.fases),
         }
 
     # Medicion controlada del paralelismo: solo red + CPU, sin llamar a la API.
