@@ -1,0 +1,75 @@
+# Entorno completo del sistema RAG normativo.
+# Un solo comando levanta todo:  docker compose up --build
+#
+# Servicios:
+#   backend  - API FastAPI: consultas multi-tenant (/api/consultar) y
+#             _ENDPOINT de ingesta web (/api/ingestar-web). Es el servicio que
+#              ejecuta el scraper concurrente bajo demanda.
+#   frontend - Chat de Streamlit.
+#   scraper  - Ejecucion por lotes del scraper sin levantar la API
+#              (perfil "tools", ver nota al pie).
+# La base de datos (Supabase + pgvector) es externa y se conecta por .env;
+# no se levanta en local. Ver scripts/schema.sql y scripts/schema_colecciones.sql.
+
+services:
+  backend:
+    build: .
+    image: lexbancario-backend:local
+    container_name: lexbancario_backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    networks:
+      - rag_net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/', timeout=5).status==200 else 1)"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build: .
+    image: lexbancario-backend:local
+    container_name: lexbancario_frontend
+    command: streamlit run app_streamlit.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
+    restart: unless-stopped
+    volumes:
+      - .:/app
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - rag_net
+
+  # El scraper comparte imagen y logica con el backend. Se deja bajo el perfil
+  # "tools" para que `docker compose up --build` no ejecute ingesta al arrancar:
+  #
+  #   docker compose --profile tools run --rm scraper \
+  #    benchmark --urls scripts/urls_prueba.txt --workers 1 2 4 8
+  #
+  scraper:
+    build: .
+    image: lexbancario-backend:local
+    container_name: lexbancario_scraper
+    profiles: ["tools"]
+    command: python scripts/ingestar_web.py --help
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    networks:
+      - rag_net
+
+networks:
+  rag_net:
+    driver: bridge

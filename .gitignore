@@ -13,11 +13,21 @@ __pycache__/
 documentos_pdf/
 documentos_u/
 *.pdf
-*.png
 *.jpg
 *.jpeg
+
+# Artefactos de benchmark regenerables (los resultados con nombre estandar
+# se versionan; estos son salidas intermedias de una corrida concreta).
+resultados_benchmark.json
 
 # Logs y base de datos local si hubiera
 *.log
 .DS_Store
 .vscode/
+
+# Los graficos del reporte SI son entregables: se anulan las imagenes
+# descartables sin arrastrar estos archivos al repositorio.
+*.png
+!grafico_speedup.png
+!grafico_desglose_redcpu.png
+!grafico_desglose_completo.png
