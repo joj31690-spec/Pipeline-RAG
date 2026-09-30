@@ -204,26 +204,57 @@ combinaciones aleatorias de `ole_date`, `sancion`, `medida` y `pais`, y los tres
 embeddings de consulta son todos de una colección distinta para que la búsqueda
 por similitud no favorezca a la colección de la query.
 
-### 3.6 Índice vectorial: riesgo asumido, no verificado
+### 3.6 Índice vectorial: verificado con `EXPLAIN ANALYZE`
 
 El esquema crea un índice **HNSW** (`vector_cosine_ops`) sobre `embedding` y un
-**B-Tree** sobre `coleccion_id` (ver `scripts/schema.sql`).
+**B-Tree** sobre `coleccion_id` (ver `scripts/schema.sql`). Se ejecutó
+`EXPLAIN (ANALYZE, BUFFERS)` para comprobar qué elige realmente el planificador.
+Plan obtenido:
 
-- El **B-Tree** es importante: reduce el costo del filtro por colección al acotar
-  los candidatos antes de la búsqueda vectorial. No es indispensable —el plan
-  también funciona sin él, con más filas candidatas— pero sí es la pieza que hace
-  barato el aislamiento por tenant.
-- El **HNSW** *podría* acelerar la búsqueda coseno, pero **esto no se verificó**.
-  PostgreSQL decide el plan en función de selectivity, tamaño de la tabla y
-  statistics; con el filtro de `coleccion_id` sobre tablas de 22–80 filas, es
-  perfectamente posible que el plan elegido sea un seq scan, en cuyo caso el
-  índice HNSW no se usa. **No se ejecutó `EXPLAIN ANALYZE`**, así que cualquier
-  afirmación sobre su uso real sería una suposición.
+```
+Limit  (actual time=5.336..5.342 rows=20 loops=1)
+  Buffers: shared hit=1494
+  ->  Sort  (actual time=5.335..5.337 rows=20 loops=1)
+        Sort Key: ((n.embedding <=> $query))
+        Sort Method: top-N heapsort  Memory: 27kB
+        Buffers: shared hit=1494
+        ->  Index Scan using idx_normativa_coleccion_btree on normativa_bancaria n
+              (actual time=1.715..5.232 rows=80 loops=1)
+              Index Cond: ((coleccion_id)::text = 'tributaria_bolivia_2026'::text)
+              Filter: ((embedding IS NOT NULL) AND ((1 - (embedding <=> $query)) > 0.3))
+              Buffers: shared hit=1491
+Planning Time: 1.626 ms
+Execution Time: 5.482 ms
+```
 
-**Acción pendiente y concreta:** ejecutar
-`EXPLAIN (ANALYZE, BUFFERS)` sobre `match_normativa_coleccion` para confirmar si
-el plan utiliza el índice o lo evita. A escala de decenas de miles de filas el
-cuadro puede cambiar.
+Dos lecturas, y la segunda es la importante:
+
+1. **El B-Tree sí se usa**, como `Index Cond` sobre `coleccion_id`. Confirma que
+   es la pieza que hace barato el aislamiento por tenant. Sigue sin ser
+   *indispensable*: sin él el plan sería un seq scan sobre las 153 filas totales en
+   lugar de 80, una diferencia irrelevante a esta escala.
+2. **El índice HNSW no aparece en el plan.** El planificador eligió B-Tree por
+   colección + filtro + `top-N heapsort`, es decir una **búsqueda exacta**. A 22–80
+   filas por colección, ordenar 80 vectores es más barato que recorrer un grafo
+   HNSW, y con razón: el índice está ahí pero no es rentable todavía.
+
+En esta escala, entonces, el diseño es correcto y rápido (5.5 ms) **gracias al
+B-Tree, no al HNSW**. Afirmar que el HNSW acelera la búsqueda habría sido falso.
+
+**Dos salvedades sobre este plan:**
+
+- Es una medición a escala de decenas de filas. A 10 000+ filas por colección el
+  planificador probablemente elegirá HNSW, porque el `Sort` dejaría de ser viable.
+  Conviene repetir el `EXPLAIN` cuando el corpus crezca.
+- El planificador **estimó 27 filas y encontró 80** para el filtro de colección, lo
+  que sugiere estadísticas desactualizadas. Un `ANALYZE normativa_bancaria;` es
+  barato y evitaría estimaciones de cardinalidad erróneas a mayor escala.
+
+> Nota sobre el plan transcrito: los tres `InitPlan` que aparecen en la salida
+> original son un artefacto de la consulta de prueba, que repetía la subconsulta
+> del vector de consulta tres veces. La RPC real recibe ese vector como un único
+> parámetro, por lo que genera un solo `InitPlan`. La forma del plan (B-Tree +
+> sort) es la misma.
 
 ### 3.7 Conclusión
 
@@ -245,6 +276,9 @@ cuadro puede cambiar.
 5. El cuello de botella con muchas réplicas **sí es medible y corregible**: la
    fase de particionado en proceso. Partir por página en lugar de por documento
    es la mejora de mayor impacto identificado.
+6. El índice vectorial está verificado: a escala actual el plan usa el B-Tree de
+   `coleccion_id` y búsqueda exacta por `sort`; el HNSW no interviene todavía.
+   Reevaluar el plan cuando el corpus crezca.
 
 ---
 
