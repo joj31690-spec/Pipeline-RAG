@@ -310,8 +310,8 @@ def ingesta_por_coleccion(
         }
 
     # Medicion controlada del paralelismo: solo red + CPU, sin llamar a la API.
-    # Aísla el speedup real de la concurrencia del techo impuesto por el
-    # rate limit de la API de embeddings (Ley de Amdahl, punto 4.4).
+    # Aísla el comportamiento de la concurrencia del efecto del rate limit de
+    # la API de embeddings, que de otro modo domina el wallclock end-to-end.
     if solo_red_cpu:
         metricas.registrar_fase("embeddings", 0.0)
         metricas.registrar_fase("insercion", 0.0)

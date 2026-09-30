@@ -175,9 +175,12 @@ Fragmentos extraídos: ASFI_022→3, ASFI_018→4, ASFI_007→3, ASFI_015→27.
 
 **¿Por qué 1.36x y no 2x?** El pool reparte **PDFs completos** de forma greedy: el
 documento más largo (ASFI_015, 7 págs ≈ 2.3 min) predomina en la cola final y no hay
-balanceo fino. Además se paga el coste de fork/overhead de cada proceso (Amdahl).
+balanceo fino. Además se paga el coste de fork/overhead de cada proceso: medido de
+forma aislada con `os.times()`, ese overhead **domina por completo** cuando las
+tareas son pocas y grandes (con 8 documentos, `p=8` resulta más lento que `p=1`;
+ver §3.2 de `REPORTE_BENCHMARK.md`).
 **Extensión natural:** partir el trabajo por *páginas* en lugar de por PDF para
-acercarse al speedup lineal (~2x-).
+acercarse al speedup lineal (~2x).
 
 ---
 

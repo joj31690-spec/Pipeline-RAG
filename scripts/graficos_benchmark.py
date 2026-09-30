@@ -62,17 +62,23 @@ def grafico_speedup(red_cpu, completo, salida="grafico_speedup.png"):
     ancho = 0.22
     p_red = [f["workers"] for f in red_cpu["filas"]]
     s_red = [f["speedup"] for f in red_cpu["filas"]]
+    err_red = [f.get("S_desv", 0.0) for f in red_cpu["filas"]]
+    hay_errores = any(e > 0 for e in err_red)
     p_com = [f["workers"] for f in completo["filas"]]
     s_com = [f["speedup"] for f in completo["filas"]]
     ideal = [p for p in p_red]
 
     pos = range(len(p_red))
-    ejes.bar([i - ancho for i in pos], s_red, ancho,
-             label="Red + CPU (controlado)", color="#2E86AB", edgecolor="white")
+    if hay_errores:
+        ejes.bar([i - ancho for i in pos], s_red, ancho, yerr=err_red, capsize=3,
+                 label="Red + CPU (media de 3 replicas)", color="#2E86AB", edgecolor="white")
+    else:
+        ejes.bar([i - ancho for i in pos], s_red, ancho,
+                 label="Red + CPU (controlado)", color="#2E86AB", edgecolor="white")
     ejes.bar(list(pos), ideal, ancho,
              label="Ideal S=p", color="#B8B8B8", edgecolor="white")
     ejes.bar([i + ancho for i in pos], s_com, ancho,
-             label="Pipeline completo (429)", color="#C44536", edgecolor="white")
+             label="Pipeline completo (cuota 429)", color="#C44536", edgecolor="white")
 
     for i, v in enumerate(s_red):
         ejes.text(i - ancho, v + 0.08, f"{v:.2f}", ha="center", fontsize=8)
@@ -97,12 +103,21 @@ def grafico_speedup(red_cpu, completo, salida="grafico_speedup.png"):
 
 def tabla_markdown(red_cpu, completo):
     """Tabla comparativa lista para pegar en el reporte."""
-    print("\n### Red + CPU (controlado, sin API)\n")
-    print("| p | T_p (s) | S_p | E_p |")
-    print("|---|---|---|---|")
-    for f in red_cpu["filas"]:
-        print(f"| {f['workers']} | {f['T_s']:.2f} | {f['speedup']:.2f} | {f['eficiencia']:.2f} |")
-    print("\n### Pipeline completo (con API, 429)\n")
+    replicas = red_cpu.get("replicas", 1)
+    print(f"\n### Red + CPU (controlado, sin API) - media de {replicas} replicas\n")
+    if replicas > 1:
+        print("| p | T_p media (s) | desv | rango | S_p media | rango S_p | E_p |")
+        print("|---|---|---|---|---|---|---|")
+        for f in red_cpu["filas"]:
+            print(f"| {f['workers']} | {f['T_s']:.2f} | {f.get('T_desv',0):.2f} | "
+                  f"{f.get('T_min','-')}-{f.get('T_max','-')} | {f['speedup']:.2f} | "
+                  f"{f.get('S_min','-')}-{f.get('S_max','-')} | {f['eficiencia']:.2f} |")
+    else:
+        print("| p | T_p (s) | S_p | E_p |")
+        print("|---|---|---|---|")
+        for f in red_cpu["filas"]:
+            print(f"| {f['workers']} | {f['T_s']:.2f} | {f['speedup']:.2f} | {f['eficiencia']:.2f} |")
+    print("\n### Pipeline completo (con API, cuota agotada)\n")
     print("| p | T_p (s) | S_p | E_p | valido |")
     print("|---|---|---|---|---|")
     for f in completo["filas"]:

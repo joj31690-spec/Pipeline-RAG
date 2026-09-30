@@ -1,0 +1,53 @@
+{
+  "filas": [
+    {
+      "workers": 1,
+      "T_s": 7.52,
+      "speedup": 1.0,
+      "eficiencia": 1.0,
+      "desglose_pct": {
+        "scraping": 92.09,
+        "chunking": 7.91,
+        "embeddings": 0.0,
+        "insercion": 0.0
+      }
+    },
+    {
+      "workers": 2,
+      "T_s": 5.36,
+      "speedup": 1.403,
+      "eficiencia": 0.701,
+      "desglose_pct": {
+        "scraping": 89.14,
+        "chunking": 10.86,
+        "embeddings": 0.0,
+        "insercion": 0.0
+      }
+    },
+    {
+      "workers": 4,
+      "T_s": 3.1,
+      "speedup": 2.426,
+      "eficiencia": 0.606,
+      "desglose_pct": {
+        "scraping": 79.1,
+        "chunking": 20.9,
+        "embeddings": 0.0,
+        "insercion": 0.0
+      }
+    },
+    {
+      "workers": 8,
+      "T_s": 2.18,
+      "speedup": 3.45,
+      "eficiencia": 0.431,
+      "desglose_pct": {
+        "scraping": 64.19,
+        "chunking": 35.81,
+        "embeddings": 0.0,
+        "insercion": 0.0
+      }
+    }
+  ],
+  "t1": 7.52
+}

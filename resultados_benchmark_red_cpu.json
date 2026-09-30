@@ -1,53 +1,121 @@
 {
+  "modo": "red_cpu",
+  "descripcion": "Serie controlada: scraping + chunking, sin llamada a la API de embeddings ni a Supabase.",
+  "urls": 10,
+  "replicas": 3,
+  "nota": "Cada punto es la media de 3 replicas independientes. Se reporta tambien minimo, maximo y desviacion estandar porque la dispersion crece con p: el coeficiente de variacion pasa de 4.4% en p=1 a 22.9% en p=8, de modo que los valores con muchos workers tienen alta incertidumbre.",
   "filas": [
     {
       "workers": 1,
-      "T_s": 8.03,
+      "T_s": 7.7,
       "speedup": 1.0,
       "eficiencia": 1.0,
+      "T_min": 7.5,
+      "T_max": 8.09,
+      "T_desv": 0.34,
+      "S_min": 1.0,
+      "S_max": 1.0,
+      "S_desv": 0.0,
+      "T_replicas": [
+        7.52,
+        7.5,
+        8.09
+      ],
+      "S_replicas": [
+        1.0,
+        1.0,
+        1.0
+      ],
       "desglose_pct": {
-        "scraping": 92.51,
-        "chunking": 7.49,
+        "scraping": 92.49,
+        "chunking": 7.51,
         "embeddings": 0.0,
         "insercion": 0.0
       }
     },
     {
       "workers": 2,
-      "T_s": 5.05,
-      "speedup": 1.59,
-      "eficiencia": 0.795,
+      "T_s": 4.83,
+      "speedup": 1.605,
+      "eficiencia": 0.802,
+      "T_min": 4.39,
+      "T_max": 5.36,
+      "T_desv": 0.49,
+      "S_min": 1.403,
+      "S_max": 1.708,
+      "S_desv": 0.175,
+      "T_replicas": [
+        5.36,
+        4.39,
+        4.75
+      ],
+      "S_replicas": [
+        1.403,
+        1.708,
+        1.703
+      ],
       "desglose_pct": {
-        "scraping": 88.28,
-        "chunking": 11.72,
+        "scraping": 87.5,
+        "chunking": 12.5,
         "embeddings": 0.0,
         "insercion": 0.0
       }
     },
     {
       "workers": 4,
-      "T_s": 2.6,
-      "speedup": 3.088,
-      "eficiencia": 0.772,
+      "T_s": 3.34,
+      "speedup": 2.329,
+      "eficiencia": 0.582,
+      "T_min": 3.03,
+      "T_max": 3.88,
+      "T_desv": 0.47,
+      "S_min": 2.085,
+      "S_max": 2.475,
+      "S_desv": 0.212,
+      "T_replicas": [
+        3.1,
+        3.03,
+        3.88
+      ],
+      "S_replicas": [
+        2.426,
+        2.475,
+        2.085
+      ],
       "desglose_pct": {
-        "scraping": 71.89,
-        "chunking": 28.11,
+        "scraping": 80.35,
+        "chunking": 19.65,
         "embeddings": 0.0,
         "insercion": 0.0
       }
     },
     {
       "workers": 8,
-      "T_s": 2.15,
-      "speedup": 3.735,
-      "eficiencia": 0.467,
+      "T_s": 2.97,
+      "speedup": 2.697,
+      "eficiencia": 0.337,
+      "T_min": 2.18,
+      "T_max": 3.37,
+      "T_desv": 0.68,
+      "S_min": 2.226,
+      "S_max": 3.45,
+      "S_desv": 0.659,
+      "T_replicas": [
+        2.18,
+        3.37,
+        3.35
+      ],
+      "S_replicas": [
+        3.45,
+        2.226,
+        2.415
+      ],
       "desglose_pct": {
-        "scraping": 61.43,
-        "chunking": 38.57,
+        "scraping": 71.54,
+        "chunking": 28.46,
         "embeddings": 0.0,
         "insercion": 0.0
       }
     }
-  ],
-  "t1": 8.03
+  ]
 }

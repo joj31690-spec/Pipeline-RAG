@@ -56,7 +56,7 @@ vectores.
 | Documento | Contenido |
 |---|---|
 | [`GUIA_DE_USO.md`](GUIA_DE_USO.md) | Guía operativa: despliegue, endpoints, pipeline y benchmark |
-| [`REPORTE_BENCHMARK.md`](REPORTE_BENCHMARK.md) | Análisis experimental y Ley de Amdahl |
+| [`REPORTE_BENCHMARK.md`](REPORTE_BENCHMARK.md) | Análisis experimental (3 réplicas) y verificación de Amdahl |
 | [`scripts/schema.sql`](scripts/schema.sql) | Esquema base (pgvector, índices, RPC) |
 | [`scripts/schema_colecciones.sql`](scripts/schema_colecciones.sql) | Migración multi-tenant |
 | [`scripts/verificar_aislamiento.py`](scripts/verificar_aislamiento.py) | Test de cero contaminación cruzada |
@@ -68,7 +68,7 @@ vectores.
 | **Aislamiento de dominios en BD** | `schema_colecciones.sql`: columna `coleccion_id`, índice B-Tree, índice compuesto y RPC PL/pgSQL `match_normativa_coleccion` con filtro `n.coleccion_id = p_coleccion_id` dentro de la función y guarda de colección inexistente. Verificado con `scripts/verificar_aislamiento.py`: 120 consultas, 2400 filas, **0 de otra colección**. |
 | **Implementación concurrente** | `ThreadPoolExecutor` para descarga (I/O), `ProcessPoolExecutor` para limpieza y particionado (CPU), ambos en `ingestar_web.py`. Cada hilo usa su propio `httpx.Client`; `metricas` y `errores` los muta solo el hilo principal que drena `as_completed()`, por eso no hace falta `Lock`. Excepciones por fase registradas y devueltas; URLs caídas o lentas no abortan el lote. |
 | **Lotes y rate limiting** | Embeddings por lotes de 10 con reintentos exponenciales 2 s → 60 s ante `429`/`RESOURCE_EXHAUSTED`/`503`; pausa entre lotes; inserción masiva por lotes con reintentos propios. Un lote fallido no aborta los siguientes y se reporta en `errores`. |
-| **Análisis experimental** | `REPORTE_BENCHMARK.md`: `T_s`, `T_p`, `S_p`, `E_p` para `p={1,2,4,8}`, tablas comparativas, desglose temporal porcentual y lectura de Amdahl. Series en `resultados_benchmark_*.json` y figuras `grafico_*.png`. |
+| **Análisis experimental** | `REPORTE_BENCHMARK.md`: `T_s`, `T_p`, `S_p`, `E_p` para `p={1,2,4,8}` con **media de 3 réplicas** (desv y rango incluidos), tablas comparativas, desglose temporal porcentual, y Amdahl usado como chequeo de consistencia (predice 2.67 frente a 2.70 medido en `p=8`), no como techo. Series en `resultados_benchmark_*.json`, `resultados_replica_*.json` y figuras `grafico_*.png`. |
 | **Contenedorización y reproducibilidad** | `Dockerfile` con Tesseract (es), poppler, libmupdf; `docker-compose.yml` con backend, frontend, healthcheck y red `rag_net`. Verificado desde un clon limpio con `docker compose up --build`. |
 
 ## Estructura

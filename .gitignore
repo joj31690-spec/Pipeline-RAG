@@ -31,3 +31,8 @@ resultados_benchmark.json
 !grafico_speedup.png
 !grafico_desglose_redcpu.png
 !grafico_desglose_completo.png
+
+# Borradores de informes: se redactan aca y se mueven al equipo de destino,
+# nunca forman parte del repositorio.
+informes/
+
